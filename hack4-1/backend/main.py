@@ -65,3 +65,9 @@ async def chat(request: ChatRequest):
         return ChatResponse(response=response, success=True)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/chat")
+async def legacy_chat(request: ChatRequest):
+    result = await chat(request)
+    return {"response": result.response}

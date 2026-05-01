@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
-from tools import current_datetime
+from tools import agentic_nakhon_nayok_context, current_datetime
 from tools.english_adapter import (
     crowded_check_english,
     search_travel_info_english,
@@ -30,8 +30,9 @@ Do not guess the current date from memory. Use the current_datetime tool.
 2. Use crowded_check to estimate the destination crowd level for the requested period.
 3. Use trend_crowded_check to compare the destination's year-round crowd trend.
 4. Use search_travel_info for places, activities, food, transportation, and budget guidance.
-5. If no destination is specified, compare several suitable Thailand destinations and explain the tradeoffs.
-6. If the requested destination has a High or Very high crowd level, recommend similar less-crowded alternatives from the tool result before building the final itinerary.
+5. Use agentic_nakhon_nayok_context for Nakhon Nayok-specific questions, hidden gems, waterfalls, cafes, dams, local prices, weather, current conditions, or crowd timing.
+6. If no destination is specified, compare several suitable Thailand destinations and explain the tradeoffs.
+7. If the requested destination has a High or Very high crowd level, recommend similar less-crowded alternatives from the tool result before building the final itinerary.
 
 [RESPONSE STRUCTURE]
 Use concise Markdown with these English headers when relevant:
@@ -113,6 +114,24 @@ TOOL_DECLARATIONS = [
             "required": [],
         },
     },
+    {
+        "name": "agentic_nakhon_nayok_context",
+        "description": "Retrieve Nakhon Nayok-specific hidden gem knowledge and optional live context such as weather, season, crowd timing, festivals, or current information.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The user's Nakhon Nayok travel question or planning request.",
+                },
+                "location": {
+                    "type": "string",
+                    "description": "Specific Nakhon Nayok place or area. Defaults to Nakhon Nayok.",
+                },
+            },
+            "required": ["query"],
+        },
+    },
 ]
 
 
@@ -186,6 +205,8 @@ class TravelAgent:
             return search_travel_info_english(**args)
         if name == "current_datetime":
             return current_datetime(**args)
+        if name == "agentic_nakhon_nayok_context":
+            return agentic_nakhon_nayok_context(**args)
         return {"error": f"Unknown tool: {name}"}
 
     def _execute_tool_call(self, tool_call) -> dict:
