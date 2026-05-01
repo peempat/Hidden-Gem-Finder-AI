@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Hidden Gem Finder AI
 
 > **Super AI Engineer Season 6** — Mini Hack Project
