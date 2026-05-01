@@ -1,1 +1,1 @@
-# Hidden-Gem-Finder-AI
+# Gemmy-AI: Secondary Cities Finder LLM
