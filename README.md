@@ -153,10 +153,3 @@ Hidden-Gem-Finder-AI/
 ```
 
 ---
-
-## Team
-
-Built for **Super AI Engineer Season 6** Mini Hack.
-=======
-# Gemmy-AI: Secondary Cities Finder LLM
->>>>>>> 870ab84b8dbebf9389c7e00a9b80be7873afe413
