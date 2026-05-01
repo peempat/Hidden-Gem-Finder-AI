@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gemmy AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { font-family: 'Sarabun', 'Kanit', sans-serif; }
+    body { background: #0a1628; min-height: 100vh; }
+
+    .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+    .glass-card { background: rgba(10,22,50,0.55); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }
+    .glass-form { background: rgba(10,28,60,0.6); backdrop-filter: blur(16px); border: 1px solid rgba(56,189,248,0.2); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0891b2 0%, #0e7490 50%, #164e63 100%);
+      box-shadow: 0 4px 20px rgba(8,145,178,0.4);
+      transition: all 0.2s;
+    }
+    .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(8,145,178,0.55); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Lang toggle */
+    #lang-btn {
+      position: absolute; top: 1rem; right: 1rem; z-index: 30;
+      background: rgba(255,255,255,0.18); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.35); color: #1e3a5f;
+      padding: 0.35rem 0.9rem; border-radius: 20px; font-size: 0.85rem;
+      cursor: pointer; font-weight: 600; transition: all 0.2s;
+    }
+    #lang-btn:hover { background: rgba(255,255,255,0.3); }
+
+    /* Scrollbar */
+    #chat-messages::-webkit-scrollbar { width: 4px; }
+    #chat-messages::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+    #chat-messages::-webkit-scrollbar-thumb { background: rgba(8,145,178,0.5); border-radius: 2px; }
+
+    /* Typing dots */
+    .dot { width:8px; height:8px; border-radius:50%; background:#0891b2; display:inline-block; animation:bounce 1.4s infinite; }
+    .dot:nth-child(2){animation-delay:.2s} .dot:nth-child(3){animation-delay:.4s}
+    @keyframes bounce { 0%,60%,100%{transform:translateY(0);opacity:.4} 30%{transform:translateY(-8px);opacity:1} }
+
+    /* Markdown */
+    .md h1,.md h2,.md h3 { font-weight:700; margin:.6rem 0 .3rem; color:#e2f4f8; }
+    .md h1{font-size:1.3rem} .md h2{font-size:1.15rem} .md h3{font-size:1.05rem}
+    .md p { margin:.4rem 0; line-height:1.75; }
+    .md ul,.md ol { margin:.4rem 0 .4rem 1.4rem; }
+    .md li { margin:.2rem 0; line-height:1.65; }
+    .md strong { color:#7dd3fc; font-weight:600; }
+    .md em { color:#a5f3fc; }
+    .md code { background:rgba(8,145,178,0.2); padding:.1rem .35rem; border-radius:4px; font-size:.88em; }
+    .md blockquote { border-left:3px solid #0891b2; padding-left:.9rem; color:#94a3b8; margin:.4rem 0; }
+    .md hr { border-color:rgba(8,145,178,0.3); margin:.8rem 0; }
+
+    /* Fade slide animation */
+    @keyframes fadeSlide { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .msg-in { animation: fadeSlide .3s ease-out; }
+
+    /* Form control */
+    .fc {
+      width:100%; border-radius:10px; padding:.6rem 1rem; color:#e2f4f8; font-size:.93rem;
+      background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); transition:.2s;
+    }
+    .fc:focus { outline:none; border-color:rgba(8,145,178,0.6); box-shadow:0 0 0 2px rgba(8,145,178,0.15); }
+    option { background:#0a1e40; }
+
+    /* Input focus */
+    #user-input { background:rgba(255,255,255,0.05); border:1px solid rgba(8,145,178,0.35); color:#e2f4f8; }
+    #user-input:focus { outline:none; border-color:rgba(8,145,178,0.65); box-shadow:0 0 0 2px rgba(8,145,178,0.2); }
+    #user-input::placeholder { color:#4a6080; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ HERO ══════════════ -->
+<div class="relative overflow-hidden" style="min-height:340px">
+
+  <!-- SVG Mountain + Lake Landscape -->
+  <svg class="absolute inset-0 w-full h-full" viewBox="0 0 1440 340" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- Sky -->
+      <linearGradient id="gSky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#5bb8d8"/>
+        <stop offset="50%"  stop-color="#96d8e8"/>
+        <stop offset="100%" stop-color="#c8f0ec"/>
+      </linearGradient>
+      <!-- Mountains -->
+      <linearGradient id="gM1" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#a0c8e0"/>
+        <stop offset="100%" stop-color="#88b8d0"/>
+      </linearGradient>
+      <linearGradient id="gM2" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#5cb0c8"/>
+        <stop offset="100%" stop-color="#40a0b8"/>
+      </linearGradient>
+      <linearGradient id="gM3" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#30909c"/>
+        <stop offset="100%" stop-color="#208090"/>
+      </linearGradient>
+      <linearGradient id="gM4" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#187888"/>
+        <stop offset="100%" stop-color="#0e6070"/>
+      </linearGradient>
+      <!-- Lake -->
+      <linearGradient id="gLake" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#78c8e0" stop-opacity=".92"/>
+        <stop offset="100%" stop-color="#b0e4f4" stop-opacity=".88"/>
+      </linearGradient>
+      <!-- Sun glow -->
+      <radialGradient id="gSun" cx="72%" cy="22%" r="28%">
+        <stop offset="0%"   stop-color="#fff8e0" stop-opacity=".5"/>
+        <stop offset="55%"  stop-color="#ffedb0" stop-opacity=".18"/>
+        <stop offset="100%" stop-color="#ffffff"  stop-opacity="0"/>
+      </radialGradient>
+      <!-- Horizon haze -->
+      <linearGradient id="gHaze" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#d8f4f8" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#eef9f8" stop-opacity=".45"/>
+      </linearGradient>
+    </defs>
+
+    <!-- Sky background -->
+    <rect width="1440" height="340" fill="url(#gSky)"/>
+    <!-- Sun glow -->
+    <rect width="1440" height="340" fill="url(#gSun)"/>
+
+    <!-- Mountain layer 1 — farthest, haziest -->
+    <path d="M-10,340 L-10,248 C90,208 170,178 275,190 C380,202 445,168 555,158 C665,148 748,172 855,162 C962,152 1045,170 1150,160 C1255,150 1355,168 1450,176 L1452,182 L1452,340 Z"
+      fill="url(#gM1)" opacity=".7"/>
+
+    <!-- Mountain layer 2 -->
+    <path d="M-10,340 L-10,272 C75,248 155,222 258,232 C362,242 442,215 555,220 C668,225 745,208 858,215 C970,222 1048,208 1162,216 C1275,224 1372,240 1452,246 L1452,340 Z"
+      fill="url(#gM2)" opacity=".82"/>
+
+    <!-- Mountain layer 3 -->
+    <path d="M-10,340 L-10,298 C65,278 148,256 248,265 C348,274 428,254 542,260 C656,266 730,248 848,256 C966,264 1048,250 1165,258 C1282,266 1378,282 1452,288 L1452,340 Z"
+      fill="url(#gM3)" opacity=".9"/>
+
+    <!-- Mountain layer 4 — foreground -->
+    <path d="M-10,340 L-10,316 C55,300 128,284 222,292 C316,300 398,283 512,290 C626,297 706,280 825,288 C944,296 1028,282 1145,290 C1262,298 1368,312 1452,318 L1452,340 Z"
+      fill="url(#gM4)"/>
+
+    <!-- Lake / water surface -->
+    <path d="M-10,316 Q360,308 720,313 Q1080,318 1452,316 L1452,340 L-10,340 Z"
+      fill="url(#gLake)"/>
+
+    <!-- Horizon atmospheric haze -->
+    <rect y="250" width="1440" height="90" fill="url(#gHaze)"/>
+
+    <!-- Lake shimmer lines -->
+    <path d="M80,325 Q280,321 480,325 Q680,329 880,325 Q1080,321 1280,325" stroke="white" stroke-width="1.2" stroke-opacity=".22" fill="none"/>
+    <path d="M180,334 Q380,330 580,334 Q780,338 980,334 Q1180,330 1360,334" stroke="white" stroke-width=".8" stroke-opacity=".15" fill="none"/>
+
+    <!-- Clouds (soft) -->
+    <g opacity=".22">
+      <ellipse cx="200" cy="72"  rx="90"  ry="22" fill="white"/>
+      <ellipse cx="248" cy="62"  rx="55"  ry="17" fill="white"/>
+      <ellipse cx="155" cy="70"  rx="50"  ry="15" fill="white"/>
+    </g>
+    <g opacity=".18">
+      <ellipse cx="1120" cy="82" rx="100" ry="24" fill="white"/>
+      <ellipse cx="1175" cy="70" rx="62"  ry="18" fill="white"/>
+      <ellipse cx="1068" cy="80" rx="55"  ry="16" fill="white"/>
+    </g>
+    <!-- Small distant cloud -->
+    <g opacity=".14">
+      <ellipse cx="650"  cy="55"  rx="70"  ry="16" fill="white"/>
+      <ellipse cx="690"  cy="47"  rx="42"  ry="13" fill="white"/>
+    </g>
+  </svg>
+
+  <!-- Language toggle button -->
+  <button id="lang-btn" onclick="toggleLang()">🌐 EN</button>
+
+  <!-- Dark overlay for text readability -->
+  <div class="absolute inset-0" style="background:rgba(5,20,50,0.32);z-index:1"></div>
+
+  <!-- Hero content -->
+  <div class="relative z-10 text-center max-w-3xl mx-auto py-14 px-4">
+    <div class="text-5xl mb-3" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.3))">✈️</div>
+    <h1 id="hero-title" class="text-4xl md:text-5xl font-bold mb-3 text-white" style="font-family:'Kanit',sans-serif;text-shadow:0 2px 12px rgba(0,0,0,0.4)">
+      Gemmy AI
+    </h1>
+    <p id="hero-sub" class="text-lg mb-5 text-white" style="font-family:'Kanit',sans-serif;text-shadow:0 1px 8px rgba(0,0,0,0.4);opacity:0.92">
+      วางแผนการท่องเที่ยวอัจฉริยะ ด้วย AI ที่รู้ใจ
+    </p>
+    <div id="feature-chips" class="flex flex-wrap justify-center gap-2 text-sm"></div>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<div class="max-w-4xl mx-auto px-4 py-6 space-y-4">
+
+  <!-- Popular destinations -->
+  <div class="text-center">
+    <p id="dest-label" class="text-slate-500 text-sm mb-2">สถานที่ยอดนิยม — คลิกเพื่อเลือก</p>
+    <div class="flex flex-wrap justify-center gap-2" id="dest-chips"></div>
+  </div>
+
+  <!-- Query Form -->
+  <div class="glass-form rounded-2xl overflow-hidden">
+    <button onclick="toggleForm()" class="w-full flex items-center justify-between px-5 py-4 text-left" style="background:rgba(8,145,178,0.1)">
+      <div class="flex items-center gap-2">
+        <span style="color:#38bdf8">✨</span>
+        <span id="form-title" class="font-semibold text-slate-200" style="font-family:'Kanit',sans-serif">วางแผนการเดินทาง</span>
+        <span id="form-sub" class="text-slate-500 text-sm hidden sm:inline">— กรอกรายละเอียดเพื่อรับแผนที่ดีที่สุด</span>
+      </div>
+      <span id="form-arrow" class="text-cyan-400 text-lg">▲</span>
+    </button>
+
+    <div id="form-body" class="px-5 pb-5 pt-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label id="lbl-dest" class="block text-sm font-medium mb-1.5" style="color:#7dd3fc">🗺️ สถานที่ปลายทาง</label>
+          <input id="f-dest" type="text" class="fc" />
+        </div>
+        <div>
+          <label id="lbl-month" class="block text-sm font-medium mb-1.5" style="color:#7dd3fc">📅 เดือนที่จะไป</label>
+          <select id="f-month" class="fc" style="cursor:pointer"></select>
+        </div>
+        <div>
+          <label id="lbl-days" class="block text-sm font-medium mb-1.5" style="color:#7dd3fc">🕐 จำนวนวัน</label>
+          <input id="f-days" type="number" min="1" max="30" class="fc" />
+        </div>
+        <div>
+          <label id="lbl-activity" class="block text-sm font-medium mb-1.5" style="color:#7dd3fc">🎯 ประเภทกิจกรรม</label>
+          <select id="f-activity" class="fc" style="cursor:pointer"></select>
+        </div>
+        <div>
+          <label id="lbl-budget" class="block text-sm font-medium mb-1.5" style="color:#7dd3fc">💰 งบประมาณ</label>
+          <select id="f-budget" class="fc" style="cursor:pointer"></select>
+        </div>
+        <div>
+          <label id="lbl-group" class="block text-sm font-medium mb-1.5" style="color:#7dd3fc">👥 ประเภทกลุ่ม</label>
+          <select id="f-group" class="fc" style="cursor:pointer"></select>
+        </div>
+      </div>
+      <button id="form-btn" onclick="submitForm()" class="btn-primary w-full py-3 rounded-xl text-white font-bold text-lg" style="font-family:'Kanit',sans-serif">
+        ✈️ วางแผนการเดินทางเลย!
+      </button>
+    </div>
+  </div>
+
+  <!-- Chat area -->
+  <div class="rounded-2xl overflow-hidden" style="box-shadow:0 20px 60px rgba(0,0,0,0.6)">
+    <!-- Messages -->
+    <div id="chat-messages" class="overflow-y-auto px-4 py-4 space-y-5"
+      style="height:520px;background:rgba(4,12,32,0.78);border:1px solid rgba(255,255,255,0.05);border-bottom:none;border-radius:16px 16px 0 0"></div>
+
+    <!-- Quick suggestions -->
+    <div id="suggestions-bar" class="px-4 py-2 flex gap-2 overflow-x-auto"
+      style="background:rgba(6,16,38,0.88);border:1px solid rgba(255,255,255,0.05);border-top:none;border-bottom:none;scrollbar-width:none"></div>
+
+    <!-- Input bar -->
+    <div class="flex items-end gap-3 p-3"
+      style="background:rgba(6,16,38,0.94);border:1px solid rgba(255,255,255,0.05);border-top:1px solid rgba(8,145,178,0.25);border-radius:0 0 16px 16px">
+      <textarea id="user-input" rows="1" class="flex-1 resize-none rounded-xl px-4 py-3 text-sm"
+        style="max-height:120px;line-height:1.5"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button id="send-btn" onclick="sendMessage()"
+        class="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200"
+        style="background:linear-gradient(135deg,#0891b2,#0e7490);box-shadow:0 4px 15px rgba(8,145,178,0.4)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <p id="footer-note" class="text-center text-xs text-slate-700"></p>
+</div>
+
+<!-- ══════════════ SCRIPT ══════════════ -->
+<script>
+// ─── Translations ──────────────────────────────────────────────────────────
+const T = {
+  th: {
+    heroSub: 'วางแผนการท่องเที่ยวอัจฉริยะ ด้วย AI ที่รู้ใจ',
+    langBtn: '🌐 EN',
+    featureChips: ['🌡️ ตรวจความแออัด','📊 วิเคราะห์แนวโน้ม','🗺️ แนะนำสถานที่','📅 วางแผนรายวัน','💰 คำนวณงบ'],
+    destLabel: 'สถานที่ยอดนิยม — คลิกเพื่อเลือก',
+    formTitle: 'วางแผนการเดินทาง',
+    formSub: '— กรอกรายละเอียดเพื่อรับแผนที่ดีที่สุด',
+    lblDest: '🗺️ สถานที่ปลายทาง', placeholderDest: 'เช่น เชียงใหม่, ภูเก็ต',
+    lblMonth: '📅 เดือนที่จะไป', selectMonth: 'เลือกเดือน',
+    months: ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'],
+    lblDays: '🕐 จำนวนวัน', placeholderDays: 'เช่น 3',
+    lblActivity: '🎯 ประเภทกิจกรรม',
+    activities: [{v:'',l:'ทุกประเภท'},{v:'ธรรมชาติ',l:'🌿 ธรรมชาติ'},{v:'วัฒนธรรม',l:'🛕 วัฒนธรรม'},{v:'ผจญภัย',l:'🧗 ผจญภัย'},{v:'ผ่อนคลาย',l:'🧘 ผ่อนคลาย'},{v:'ครอบครัว',l:'👨‍👩‍👧‍👦 ครอบครัว'}],
+    lblBudget: '💰 งบประมาณ',
+    budgets: [{v:'',l:'ไม่ระบุ'},{v:'budget',l:'💚 ประหยัด'},{v:'mid',l:'💛 กลาง'},{v:'luxury',l:'💎 หรูหรา'}],
+    lblGroup: '👥 ประเภทกลุ่ม',
+    groups: [{v:'',l:'ไม่ระบุ'},{v:'เดี่ยว',l:'🧍 ไปคนเดียว'},{v:'คู่',l:'💑 ไปกับแฟน'},{v:'เพื่อน',l:'👫 กลุ่มเพื่อน'},{v:'ครอบครัว',l:'👨‍👩‍👧‍👦 ครอบครัว'}],
+    submitBtn: '✈️ วางแผนการเดินทางเลย!',
+    suggestions: ['เชียงใหม่ เดือนหน้า ไปดีไหม?','ภูเก็ต ช่วงซัมเมอร์ แนะนำหน่อย','ที่เที่ยวไม่แออัด เดือนพฤษภาคม','แนะนำที่เที่ยวฤดูฝน'],
+    inputPlaceholder: 'พิมพ์ถามเรื่องการท่องเที่ยว... (Enter เพื่อส่ง)',
+    analyzing: 'AI กำลังวิเคราะห์...',
+    footer: 'ข้อมูลจากฐานข้อมูลท่องเที่ยวไทย • ราคาอาจเปลี่ยนแปลง ควรตรวจสอบก่อนเดินทาง',
+    alertMsg: 'กรุณาระบุสถานที่หรือเดือนที่ต้องการเดินทาง',
+    aiLabel: 'Gemmy Planner',
+    budgetMap: {budget:'งบประหยัด', mid:'งบปานกลาง', luxury:'งบหรูหรา'},
+    welcome: `สวัสดีครับ! ผมคือ **Gemmy AI** ผู้ช่วยวางแผนท่องเที่ยวของคุณ 🗺️✈️\n\nผมสามารถช่วยคุณได้ในเรื่อง:\n- 🌡️ **ตรวจสอบความแออัด** ของสถานที่ท่องเที่ยวในช่วงที่คุณต้องการไป\n- 📊 **วิเคราะห์แนวโน้ม** ตลอดทั้งปี เพื่อช่วยเลือกช่วงเวลาที่ดีที่สุด\n- 🗺️ **แนะนำสถานที่** กิจกรรม อาหาร และการเดินทาง\n- 📅 **วางแผนการเดินทาง** รายวันแบบละเอียด\n- 💰 **ประมาณการงบประมาณ** ที่เหมาะสม\n\n**เริ่มต้นได้เลย!** กรอกฟอร์มด้านบน หรือพิมพ์ถามผมได้โดยตรงเลยครับ 😊`,
+    buildMsg: (dest, month, mIdx, days, group, activity, budget) => {
+      const bmap = {budget:'งบประหยัด', mid:'งบปานกลาง', luxury:'งบหรูหรา'};
+      const parts = [dest ? `ฉันอยากไปเที่ยว${dest}` : 'ฉันอยากวางแผนเที่ยว'];
+      if (month) parts.push(`ในเดือน${month} (เดือนที่${mIdx+1})`);
+      if (days)  parts.push(`ระยะเวลา ${days} วัน`);
+      if (group) parts.push(`ไป${group}`);
+      if (activity) parts.push(`ชอบกิจกรรมประเภท${activity}`);
+      if (budget)   parts.push(bmap[budget]||budget);
+      return parts.join(' ') + ' ช่วยวางแผนและตรวจสอบความแออัด พร้อมแนะนำกิจกรรม อาหาร การเดินทาง และงบประมาณให้หน่อยได้ไหม?';
+    }
+  },
+  en: {
+    heroSub: 'Smart Travel Planning Powered by AI',
+    langBtn: '🌐 TH',
+    featureChips: ['🌡️ Crowd Check','📊 Trend Analysis','🗺️ Place Picks','📅 Day Planning','💰 Budget Calc'],
+    destLabel: 'Popular Destinations — click to select',
+    formTitle: 'Plan Your Trip',
+    formSub: '— fill in details for the best itinerary',
+    lblDest: '🗺️ Destination', placeholderDest: 'e.g. Chiang Mai, Phuket',
+    lblMonth: '📅 Travel Month', selectMonth: 'Select month',
+    months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+    lblDays: '🕐 Number of Days', placeholderDays: 'e.g. 3',
+    lblActivity: '🎯 Activity Type',
+    activities: [{v:'',l:'All types'},{v:'ธรรมชาติ',l:'🌿 Nature'},{v:'วัฒนธรรม',l:'🛕 Culture'},{v:'ผจญภัย',l:'🧗 Adventure'},{v:'ผ่อนคลาย',l:'🧘 Relaxation'},{v:'ครอบครัว',l:'👨‍👩‍👧‍👦 Family'}],
+    lblBudget: '💰 Budget',
+    budgets: [{v:'',l:'Not specified'},{v:'budget',l:'💚 Budget'},{v:'mid',l:'💛 Mid-range'},{v:'luxury',l:'💎 Luxury'}],
+    lblGroup: '👥 Travel Group',
+    groups: [{v:'',l:'Not specified'},{v:'เดี่ยว',l:'🧍 Solo'},{v:'คู่',l:'💑 Couple'},{v:'เพื่อน',l:'👫 Friends'},{v:'ครอบครัว',l:'👨‍👩‍👧‍👦 Family'}],
+    submitBtn: '✈️ Plan My Trip!',
+    suggestions: ['Is Chiang Mai good next month?','Phuket in summer — any tips?','Uncrowded spots in May','Best places in rainy season'],
+    inputPlaceholder: 'Ask about travel destinations... (Enter to send)',
+    analyzing: 'AI is analyzing...',
+    footer: 'Data from Thai tourism database • Prices may vary, please verify before traveling',
+    alertMsg: 'Please specify a destination or travel month',
+    aiLabel: 'Gemmy Planner',
+    budgetMap: {budget:'budget', mid:'mid-range', luxury:'luxury'},
+    welcome: `Hello! I'm **Gemmy AI** 🗺️✈️\n\nI can help you with:\n- 🌡️ **Crowd levels** at your destination during your travel dates\n- 📊 **Year-round trends** to find the best time to visit\n- 🗺️ **Place recommendations** with activities, food & transport\n- 📅 **Day-by-day itineraries** tailored to your preferences\n- 💰 **Budget estimates** for your trip\n\n**Get started!** Fill in the form above or just type your question below 😊`,
+    buildMsg: (dest, month, mIdx, days, group, activity, budget) => {
+      const bmap = {budget:'budget', mid:'mid-range', luxury:'luxury'};
+      const gmap = {เดี่ยว:'solo', คู่:'as a couple', เพื่อน:'with friends', ครอบครัว:'with family'};
+      const amap = {ธรรมชาติ:'nature', วัฒนธรรม:'culture', ผจญภัย:'adventure', ผ่อนคลาย:'relaxation', ครอบครัว:'family activities'};
+      const parts = [`I want to visit ${dest||'Thailand'}`];
+      if (month) parts.push(`in ${month}`);
+      if (days)  parts.push(`for ${days} days`);
+      if (group) parts.push(`travelling ${gmap[group]||group}`);
+      if (activity) parts.push(`interested in ${amap[activity]||activity}`);
+      if (budget)   parts.push(`on a ${bmap[budget]||budget} budget`);
+      return parts.join(' ') + '. Please help me plan the trip, check crowd levels, and recommend activities, food, transport and budget.';
+    }
+  }
+};
+
+// ─── State ─────────────────────────────────────────────────────────────────
+let lang = 'en';
+let chatHistory = [];
+let isLoading = false;
+let selectedDest = '';
+
+const DESTINATIONS = [
+  {name:'เชียงใหม่', en:'Chiang Mai',   emoji:'🏔️'},
+  {name:'ภูเก็ต',    en:'Phuket',       emoji:'🏖️'},
+  {name:'กระบี่',    en:'Krabi',        emoji:'🌊'},
+  {name:'เชียงราย',  en:'Chiang Rai',   emoji:'🛕'},
+  {name:'น่าน',      en:'Nan',          emoji:'🌸'},
+  {name:'เกาะสมุย',  en:'Koh Samui',   emoji:'🌴'},
+  {name:'พัทยา',     en:'Pattaya',      emoji:'🎡'},
+  {name:'แม่ฮ่องสอน',en:'Mae Hong Son', emoji:'🌫️'},
+  {name:'ตรัง',      en:'Trang',        emoji:'🐠'},
+  {name:'หัวหิน',    en:'Hua Hin',      emoji:'🐴'},
+];
+
+// ─── Apply language ────────────────────────────────────────────────────────
+function applyLang() {
+  const t = T[lang];
+  document.getElementById('lang-btn').textContent  = t.langBtn;
+  document.getElementById('hero-sub').textContent  = t.heroSub;
+  document.getElementById('dest-label').textContent = t.destLabel;
+  document.getElementById('form-title').textContent = t.formTitle;
+  document.getElementById('form-sub').textContent   = t.formSub;
+  document.getElementById('lbl-dest').textContent   = t.lblDest;
+  document.getElementById('lbl-month').textContent  = t.lblMonth;
+  document.getElementById('lbl-days').textContent   = t.lblDays;
+  document.getElementById('lbl-activity').textContent = t.lblActivity;
+  document.getElementById('lbl-budget').textContent = t.lblBudget;
+  document.getElementById('lbl-group').textContent  = t.lblGroup;
+  document.getElementById('form-btn').textContent   = t.submitBtn;
+  document.getElementById('user-input').placeholder = t.inputPlaceholder;
+  document.getElementById('footer-note').textContent = t.footer;
+  document.getElementById('f-dest').placeholder     = t.placeholderDest;
+  document.getElementById('f-days').placeholder     = t.placeholderDays;
+
+  // Feature chips
+  const fc = document.getElementById('feature-chips');
+  fc.innerHTML = '';
+  t.featureChips.forEach(c => {
+    fc.insertAdjacentHTML('beforeend',
+      `<span class="glass px-3 py-1 rounded-full text-white text-sm" style="text-shadow:0 1px 4px rgba(0,0,0,0.4)">${c}</span>`);
+  });
+
+  // Dest chips
+  buildDestChips();
+
+  // Month select
+  const ms = document.getElementById('f-month');
+  const curMonth = ms.value;
+  ms.innerHTML = `<option value="">${t.selectMonth}</option>`;
+  t.months.forEach((m,i) => {
+    const o = document.createElement('option');
+    o.value = String(i+1);
+    o.textContent = m;
+    ms.appendChild(o);
+  });
+  ms.value = curMonth;
+
+  // Activity, Budget, Group selects
+  [['f-activity','activities'],['f-budget','budgets'],['f-group','groups']].forEach(([id,key]) => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = '';
+    t[key].forEach(({v,l}) => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = l;
+      sel.appendChild(o);
+    });
+    sel.value = cur;
+  });
+
+  // Suggestions bar
+  buildSuggestions();
+}
+
+function toggleLang() {
+  lang = lang === 'th' ? 'en' : 'th';
+  applyLang();
+}
+
+// ─── Destination chips ─────────────────────────────────────────────────────
+function buildDestChips() {
+  const el = document.getElementById('dest-chips');
+  el.innerHTML = '';
+  DESTINATIONS.forEach(d => {
+    const label = lang === 'th' ? d.name : d.en;
+    const btn = document.createElement('button');
+    btn.id = 'chip-' + d.name;
+    btn.onclick = () => selectDest(d.name);
+    btn.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200';
+    btn.textContent = d.emoji + ' ' + label;
+    updateChipStyle(btn, d.name === selectedDest);
+    el.appendChild(btn);
+  });
+}
+
+function updateChipStyle(btn, active) {
+  if (active) {
+    btn.style.cssText = 'background:linear-gradient(135deg,#0891b2,#0e7490);border:1px solid #0891b2;color:#fff;box-shadow:0 0 12px rgba(8,145,178,0.4)';
+  } else {
+    btn.style.cssText = 'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#94a3b8';
+  }
+}
+
+function selectDest(name) {
+  selectedDest = name;
+  document.getElementById('f-dest').value = name;
+  DESTINATIONS.forEach(d => {
+    const c = document.getElementById('chip-' + d.name);
+    if (c) updateChipStyle(c, d.name === name);
+  });
+  const fb = document.getElementById('form-body');
+  if (fb.style.display === 'none') toggleForm();
+}
+
+// ─── Form ──────────────────────────────────────────────────────────────────
+function toggleForm() {
+  const fb = document.getElementById('form-body');
+  const arrow = document.getElementById('form-arrow');
+  const hidden = fb.style.display === 'none';
+  fb.style.display = hidden ? 'block' : 'none';
+  arrow.textContent = hidden ? '▲' : '▼';
+}
+
+function submitForm() {
+  const t = T[lang];
+  const dest  = document.getElementById('f-dest').value.trim();
+  const monthIdx = document.getElementById('f-month').value;
+  const month = monthIdx ? t.months[parseInt(monthIdx)-1] : '';
+  const mIdx  = monthIdx ? parseInt(monthIdx)-1 : -1;
+  const days  = document.getElementById('f-days').value;
+  const activity = document.getElementById('f-activity').value;
+  const budget   = document.getElementById('f-budget').value;
+  const group    = document.getElementById('f-group').value;
+
+  if (!dest && !month) { alert(t.alertMsg); return; }
+  const msg = t.buildMsg(dest, month, mIdx, days, group, activity, budget);
+  toggleForm();
+  doSend(msg);
+}
+
+// ─── Suggestions ───────────────────────────────────────────────────────────
+function buildSuggestions() {
+  const bar = document.getElementById('suggestions-bar');
+  bar.innerHTML = '';
+  T[lang].suggestions.forEach(s => {
+    bar.insertAdjacentHTML('beforeend',
+      `<button onclick="useSuggestion(this)" class="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium"
+        style="background:rgba(8,145,178,0.1);border:1px solid rgba(8,145,178,0.3);color:#7dd3fc;cursor:pointer">
+        💬 ${s}</button>`);
+  });
+}
+
+function useSuggestion(btn) {
+  const text = btn.textContent.replace('💬 ','').trim();
+  const inp = document.getElementById('user-input');
+  inp.value = text;
+  inp.focus();
+}
+
+// ─── Chat ──────────────────────────────────────────────────────────────────
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function sendMessage() {
+  const inp = document.getElementById('user-input');
+  const text = inp.value.trim();
+  if (!text || isLoading) return;
+  inp.value = ''; inp.style.height = 'auto';
+  doSend(text);
+}
+
+async function doSend(text) {
+  if (isLoading) return;
+  isLoading = true;
+  setSendDisabled(true);
+  appendUserMsg(text);
+  const lid = appendLoadingMsg();
+  scrollBottom();
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ message: text, history: chatHistory })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const aiText = data.response || '...';
+    removeLoading(lid);
+    appendAIMsg(aiText);
+    chatHistory.push({role:'user',  content: text});
+    chatHistory.push({role:'model', content: aiText});
+  } catch(err) {
+    removeLoading(lid);
+    appendAIMsg('Cannot connect to backend. Make sure `start_backend.bat` is running and GROQ_API_KEY is set.\n\n`' + err.message + '`');
+  } finally {
+    isLoading = false;
+    setSendDisabled(false);
+    scrollBottom();
+  }
+}
+
+function setSendDisabled(d) {
+  const b = document.getElementById('send-btn');
+  b.style.opacity = d ? '.45' : '1';
+  b.style.cursor  = d ? 'not-allowed' : 'pointer';
+}
+
+function scrollBottom() {
+  const el = document.getElementById('chat-messages');
+  el.scrollTop = el.scrollHeight;
+}
+
+// ─── Message rendering ─────────────────────────────────────────────────────
+function appendUserMsg(text) {
+  document.getElementById('chat-messages').insertAdjacentHTML('beforeend', `
+    <div class="flex items-end justify-end gap-3 msg-in">
+      <div style="max-width:72%">
+        <div class="rounded-2xl rounded-br-none px-5 py-3 text-white text-sm leading-relaxed"
+          style="background:linear-gradient(135deg,#0891b2,#0e7490);box-shadow:0 4px 18px rgba(8,145,178,0.3)">
+          ${escHtml(text)}</div>
+        <p class="text-right text-xs mt-1" style="color:#334155">${now()}</p>
+      </div>
+      <div class="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-lg"
+        style="background:linear-gradient(135deg,#0ea5e9,#0284c7);box-shadow:0 0 10px rgba(14,165,233,0.35)">👤</div>
+    </div>`);
+}
+
+function appendLoadingMsg() {
+  const id = 'load-' + Date.now();
+  document.getElementById('chat-messages').insertAdjacentHTML('beforeend', `
+    <div id="${id}" class="flex items-start gap-3 msg-in">
+      <div class="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-lg"
+        style="overflow:hidden;box-shadow:0 0 12px rgba(8,145,178,0.4)"><img src="/static/gemmy.png" style="width:100%;height:100%;object-fit:cover;object-position:center top" onerror="this.parentElement.innerHTML='🤖'"></div>
+      <div class="glass-card rounded-2xl rounded-tl-none px-5 py-4">
+        <span class="text-sm mr-2" style="color:#64748b">${T[lang].analyzing}</span>
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+    </div>`);
+  return id;
+}
+
+function removeLoading(id) { document.getElementById(id)?.remove(); }
+
+function appendAIMsg(text) {
+  const html = marked.parse(text);
+  document.getElementById('chat-messages').insertAdjacentHTML('beforeend', `
+    <div class="flex items-start gap-3 msg-in">
+      <div class="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-lg"
+        style="overflow:hidden;box-shadow:0 0 12px rgba(8,145,178,0.4)"><img src="/static/gemmy.png" style="width:100%;height:100%;object-fit:cover;object-position:center top" onerror="this.parentElement.innerHTML='🤖'"></div>
+      <div style="max-width:82%;min-width:180px">
+        <p class="text-xs font-semibold mb-1" style="color:#38bdf8">${T[lang].aiLabel}</p>
+        <div class="glass-card rounded-2xl rounded-tl-none px-5 py-4"
+          style="border:1px solid rgba(8,145,178,0.2);box-shadow:0 4px 24px rgba(0,0,0,0.35)">
+          <div class="md text-slate-200 text-sm leading-relaxed">${html}</div>
+        </div>
+        <p class="text-xs mt-1" style="color:#334155">${now()}</p>
+      </div>
+    </div>`);
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+function now() {
+  return new Date().toLocaleTimeString(lang==='th'?'th-TH':'en-US',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ─── Init ──────────────────────────────────────────────────────────────────
+applyLang();
+appendAIMsg(T[lang].welcome);
+</script>
+</body>
+</html>
